@@ -10,22 +10,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/gorilla/mux"
-	"github.com/swapnika/webServer/handlers"
+	"github.com/swapnika/golang-microservices/handlers"
 )
 
 func main() {
 
-	// l := log.New(os.Stdout, "product-api", log.LstdFlags)
-
-	// hh := handlers.NewHello(l)
-	// gg := handlers.NewGoodbye()
 	pr := handlers.NewProduct()
 
 	sm := mux.NewRouter()
 
-	// sm.Handle("/", hh)
-	// sm.Handle("/goodbye", gg)
 	getRouter := sm.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/", pr.GetProducts)
 
@@ -36,7 +31,12 @@ func main() {
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", pr.UpdateProduct)
 	putRouter.Use(pr.MiddlewareValidateProduct)
-	// sm.Handle("/products/", pr)
+
+	opts := middleware.RedocOpts{SpecURL: "/swagger.yaml"}
+	sh := middleware.Redoc(opts, nil)
+
+	getRouter.Handle("/docs", sh)
+	getRouter.Handle("/swagger.yaml", http.FileServer(http.Dir("./")))
 
 	s := &http.Server{
 		Addr:         ":9000",
